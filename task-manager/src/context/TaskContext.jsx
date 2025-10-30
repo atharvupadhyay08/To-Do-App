@@ -1,60 +1,57 @@
-import { createContext, useContext, useEffect, useState, useCallback } from "react";
+// src/context/TaskContext.jsx
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import * as api from "../utils/api.js";
 
 const TaskContext = createContext();
 
 export function TaskProvider({ children }) {
   const [tasks, setTasks] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // 🧩 Fetch tasks
-  const fetchTasks = useCallback(async () => {
-    try {
-      const res = await fetch("https://jsonplaceholder.typicode.com/todos?_limit=10");
-      const data = await res.json();
-      setTasks(data);
-    } catch {
-      setError("Failed to fetch tasks");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
+    const fetchTasks = async () => {
+      try {
+        setLoading(true);
+        const data = await api.getTodos();
+        setTasks(data);
+      } catch {
+        setError("Failed to fetch tasks");
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchTasks();
-  }, [fetchTasks]);
+  }, []);
 
-  //  Add task
   const addTask = useCallback(async (task) => {
-    const res = await fetch("https://jsonplaceholder.typicode.com/todos", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(task),
-    });
-    const newTask = await res.json();
-    setTasks((prev) => [...prev, newTask]);
+    const newTask = await api.addTodo(task);
+    setTasks((prev) => [newTask, ...prev]);
   }, []);
 
-  //  Edit task
-  const editTask = useCallback(async (id, updatedTask) => {
-    await fetch(`https://jsonplaceholder.typicode.com/todos/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(updatedTask),
-    });
-    setTasks((prev) => prev.map((t) => (t.id === id ? updatedTask : t)));
+  const editTask = useCallback(async (id, updates) => {
+    await api.updateTodo(id, updates);
+    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...updates } : t)));
   }, []);
 
-  // Delete task
   const deleteTask = useCallback(async (id) => {
-    await fetch(`https://jsonplaceholder.typicode.com/todos/${id}`, {
-      method: "DELETE",
-    });
+    await api.deleteTodo(id);
     setTasks((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  const value = { tasks, loading, error, addTask, editTask, deleteTask };
-  return <TaskContext.Provider value={value}>{children}</TaskContext.Provider>;
+  const toggleTask = useCallback(async (id) => {
+    const task = tasks.find((t) => t.id === id);
+    if (!task) return;
+    await editTask(id, { completed: !task.completed });
+  }, [tasks, editTask]);
+
+  return (
+    <TaskContext.Provider value={{ tasks, loading, error, addTask, editTask, deleteTask, toggleTask }}>
+      {children}
+    </TaskContext.Provider>
+  );
 }
 
-export const useTasks = () => useContext(TaskContext);
+export function useTaskContext() {
+  return useContext(TaskContext);
+}
