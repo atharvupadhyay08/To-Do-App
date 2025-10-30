@@ -1,7 +1,7 @@
 // src/pages/EditTask.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import useTasks from "../hooks/useTasks.js";
+import useTasks from "../hooks/useTasks.jsx"; // ✅ Ensure correct extension & path
 
 export default function EditTask() {
   const { id } = useParams();
@@ -10,7 +10,7 @@ export default function EditTask() {
 
   const found = tasks.find((t) => String(t.id) === String(id));
 
-  const [title, setTitle] = useState(found?.title ?? "");
+  const [title, setTitle] = useState(found?.title || "");
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState(null);
 
@@ -20,20 +20,20 @@ export default function EditTask() {
 
   useEffect(() => {
     if (!found && tasks.length > 0) {
-      // If tasks are loaded but the task is missing, redirect
-      navigate("/");
+      navigate("/"); // redirect if task not found
     }
   }, [found, tasks, navigate]);
 
-  const handleSubmit = async (event) => {
-    event.preventDefault(); // renamed 'e' → 'event' for clarity
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     if (!title.trim()) return;
 
     setSubmitting(true);
     try {
       await editTask(id, { title: title.trim() });
       navigate("/");
-    } catch {
+    } catch (error) {
+      console.error(error);
       setErr("Could not save changes");
     } finally {
       setSubmitting(false);
@@ -43,8 +43,11 @@ export default function EditTask() {
   if (!found) return <p>Loading task...</p>;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
-      <h1 className="text-2xl font-bold">Edit Task</h1>
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-4 max-w-md mx-auto mt-10 p-4 bg-white dark:bg-gray-800 rounded-lg shadow"
+    >
+      <h1 className="text-2xl font-bold mb-4">Edit Task</h1>
 
       {err && <p className="text-red-500">{err}</p>}
 
@@ -60,7 +63,7 @@ export default function EditTask() {
         <button
           disabled={submitting}
           type="submit"
-          className="bg-green-500 text-white px-4 py-2 rounded"
+          className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 disabled:opacity-50"
         >
           {submitting ? "Saving..." : "Save Changes"}
         </button>
@@ -68,7 +71,7 @@ export default function EditTask() {
         <button
           type="button"
           onClick={() => navigate("/")}
-          className="px-4 py-2 border rounded"
+          className="px-4 py-2 border rounded hover:bg-gray-100 dark:hover:bg-gray-700"
         >
           Cancel
         </button>
@@ -76,4 +79,3 @@ export default function EditTask() {
     </form>
   );
 }
-

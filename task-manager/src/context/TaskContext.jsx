@@ -55,3 +55,6 @@ export function TaskProvider({ children }) {
 export function useTaskContext() {
   return useContext(TaskContext);
 }
+
+// ✅ Add this line so other files (like useTasks.jsx) can import it
+export { TaskContext };
